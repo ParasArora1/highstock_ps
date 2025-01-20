@@ -38,7 +38,7 @@ const FormComponent = () => {
     setError('');
 
     try {
-      const response = await fetch('https://api.render.com/deploy/srv-cu71qijtq21c738bodug?key=JqvYI94dfdA', {
+      const response = await fetch('https://highstock-ps-1.onrender.com/api', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
