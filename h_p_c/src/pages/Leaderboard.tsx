@@ -18,7 +18,7 @@ export default function Leaderboard() {
     setMounted(true);
     fetchRankings();
 
-    const socket = io("https://your-app-name.onrender.com/api", {
+    const socket = io("https://highstock-ps-1.onrender.com/api", {
       withCredentials: true,
       transports: ['polling', 'websocket'],
     });
