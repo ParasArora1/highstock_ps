@@ -216,13 +216,12 @@ const ManagePlayers: React.FC = () => {
 
         <div className="grid gap-6">
           <AnimatePresence>
-            if(users.map.size==0)
-            {
-            <div className="p-8 text-center text-purple-400 text-base sm:text-xl animate-pulse">
-                No rankings available yet. Start eating some pizza! 🍕
+            {users.map.size === 0 ? (
+              <div className="p-8 text-center text-purple-400 text-base sm:text-xl animate-pulse">
+              No rankings available yet. Start eating some pizza! 🍕
               </div>
-            }
-            {users.map((user, index) => (
+               ) : (
+               users.map((user, index) => (
               <motion.div
                 key={user.id}
                 initial={{ x: -100, opacity: 0 }}
