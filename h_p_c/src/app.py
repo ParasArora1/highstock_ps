@@ -11,14 +11,14 @@ import threading
 app = Flask(__name__)
 CORS(app, resources={
     r"/*": {
-        "origins": "http://pizzaparadisehs.netlify.app",  
+        "origins": "https://pizzaparadisehs.netlify.app",  
         "allow_headers": ["Content-Type"],
         "methods": ["GET", "POST", "OPTIONS,DELETE"],
         "supports_credentials": True
     }
 })
 
-socketio = SocketIO(app, cors_allowed_origins="http://pizzaparadisehs.netlify.app")
+socketio = SocketIO(app, cors_allowed_origins="https://pizzaparadisehs.netlify.app")
 
 url = "https://zllmedoapyxuerctyfwl.supabase.co"
 key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsbG1lZG9hcHl4dWVyY3R5ZndsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzA0ODQ0NSwiZXhwIjoyMDUyNjI0NDQ1fQ.E79VF3e8iPApqObEKuJrZQWozc8ZCSDEKzeSbQRj3dg"
