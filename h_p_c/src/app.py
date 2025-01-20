@@ -33,7 +33,7 @@ class User:
     name: str
     age: int
     gender: str
-    coins: int = 100
+    coins: int = 500
 
 class APIError(Exception):
     def __init__(self, message: str, status_code: int):
