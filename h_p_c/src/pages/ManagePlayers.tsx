@@ -218,7 +218,7 @@ const ManagePlayers: React.FC = () => {
           <AnimatePresence>
             {users.map.size === 0 ? (
               <div className="p-8 text-center text-purple-400 text-base sm:text-xl animate-pulse">
-              No rankings available yet. Start eating some pizza! 🍕
+              No users in Paradise. Add some new users to the Paradise :)
               </div>
                ) : (
                users.map((user, index) => (
