@@ -3,3 +3,4 @@ Flask-Cors
 Flask-SocketIO
 supabase
 python-dotenv
+gunicorn
