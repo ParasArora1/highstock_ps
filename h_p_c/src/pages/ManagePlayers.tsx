@@ -215,66 +215,74 @@ const ManagePlayers: React.FC = () => {
         </motion.h1>
 
         <div className="grid gap-6">
-          <AnimatePresence>
-            {users.map.size === 0 ? (
-              <div className="p-8 text-center text-purple-400 text-base sm:text-xl animate-pulse">
-              No users in Paradise. Add some new users to the Paradise :)
-              </div>
-               ) : (
-               users.map((user, index) => (
-              <motion.div
-                key={user.id}
-                initial={{ x: -100, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: 100, opacity: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="border border-purple-500 p-6 rounded-xl shadow-lg bg-gradient-to-r from-gray-900 to-black hover:shadow-purple-500/20 hover:shadow-2xl transition-all duration-300"
-              >
-                <div className="flex justify-between items-center flex-wrap gap-4">
-                  <div className="min-w-[200px]">
-                    <h2 className="text-2xl font-bold text-purple-400 break-words">{user.name}</h2>
-                    <p className="text-gray-400">Age: {user.age} | Gender: {user.gender}</p>
-                    <p className="text-yellow-500 font-semibold">🪙 {user.coins} coins</p>
-                  </div>
+  <AnimatePresence>
+    {users.map.size === 0 ? (
+      <div className="p-8 text-center text-purple-400 text-base sm:text-xl animate-pulse">
+        No users in Paradise. Add some new users to the Paradise :)
+      </div>
+    ) : (
+      users.map((user, index) => (
+        <motion.div
+          key={user.id}
+          initial={{ x: -100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: 100, opacity: 0 }}
+          transition={{ delay: index * 0.1 }}
+          className="border border-purple-500 p-6 rounded-xl shadow-lg bg-gradient-to-r from-gray-900 to-black hover:shadow-purple-500/20 hover:shadow-2xl transition-all duration-300"
+        >
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <div className="min-w-[200px]">
+              <h2 className="text-2xl font-bold text-purple-400 break-words">
+                {user.name}
+              </h2>
+              <p className="text-gray-400">
+                Age: {user.age} | Gender: {user.gender}
+              </p>
+              <p className="text-yellow-500 font-semibold">
+                🪙 {user.coins} coins
+              </p>
+            </div>
 
-                  <div className="flex gap-3 flex-wrap">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setShowPurchaseModal(true);
-                        setShowHistoryModal(false);
-                      }}
-                      className="bg-gradient-to-r from-purple-500 to-red-500 px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-purple-500/50 transition-all duration-300"
-                    >
-                      🍕 Buy Pizza
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        setSelectedUser(user);
-                        fetchUserHistory(user.id);
-                      }}
-                      className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-green-500/50 transition-all duration-300"
-                    >
-                      📋 History
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleDeleteUser(user)}
-                      className="bg-gradient-to-r from-red-600 to-rose-700 px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-red-500/50 transition-all duration-300"
-                    >
-                      ❌ Delete
-                    </motion.button>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+            <div className="flex gap-3 flex-wrap">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setSelectedUser(user);
+                  setShowPurchaseModal(true);
+                  setShowHistoryModal(false);
+                }}
+                className="bg-gradient-to-r from-purple-500 to-red-500 px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-purple-500/50 transition-all duration-300"
+              >
+                🍕 Buy Pizza
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setSelectedUser(user);
+                  fetchUserHistory(user.id);
+                }}
+                className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-green-500/50 transition-all duration-300"
+              >
+                📋 History
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleDeleteUser(user)}
+                className="bg-gradient-to-r from-red-600 to-rose-700 px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-red-500/50 transition-all duration-300"
+              >
+                ❌ Delete
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
+      ))
+    )}
+  </AnimatePresence>
+</div>
+
 
         {/* Purchase Modal */}
         <AnimatePresence>
