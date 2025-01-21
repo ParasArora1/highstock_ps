@@ -16,11 +16,11 @@ export default function Leaderboard() {
 
   useEffect(() => {
     setMounted(true);
-    fetchRankings();
+    fetchRankings();  // Fetch leaderboard data initially
 
-    const socket = io("https://82e6-2405-201-5c2a-701b-49c-b0bc-6e68-29e.ngrok-free.app", {
+    const socket = io("https://highstock-ps-1.onrender.com", {
       withCredentials: true,
-      transports: ['polling', 'websocket'],
+      transports: ['websocket'],
     });
 
     console.log("Connected with server");
@@ -29,7 +29,7 @@ export default function Leaderboard() {
       console.log("Data received:", data);
       if (data.message === 'update_leaderboard') {
         console.log("Received update notification.");
-        fetchRankings();
+        fetchRankings();  // Re-fetch leaderboard when updated
       }
     });
 
@@ -38,15 +38,17 @@ export default function Leaderboard() {
       setError('WebSocket connection error. Please try again later.');
     });
 
+    // Cleanup on component unmount
     return () => {
       socket.disconnect();
       console.log("Socket disconnected.");
     };
-  }, []);
+  }, []);  // Empty dependency array so it only runs once
 
+  // Function to fetch rankings via HTTP (initial fetch)
   const fetchRankings = async () => {
     try {
-      const response = await fetch('https://82e6-2405-201-5c2a-701b-49c-b0bc-6e68-29e.ngrok-free.app/leaderboard');
+      const response = await fetch('https://highstock-ps-1.onrender.com/leaderboard');  // Use HTTP for initial data fetch
       if (!response.ok) {
         throw new Error('Failed to fetch rankings');
       }
