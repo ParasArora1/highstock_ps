@@ -40,7 +40,7 @@ const FormComponent = () => {
     setError('');
 
     try {
-      const response = await fetch(' https://purple-goats-go.loca.lt/users', {
+      const response = await fetch('https://highstock-ps-1.onrender.com/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
