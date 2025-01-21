@@ -18,7 +18,7 @@ export default function Leaderboard() {
     setMounted(true);
     fetchRankings();
 
-    const socket = io("https://highstock-ps-1.onrender.com", {
+    const socket = io("http://192.168.29.1:5000", {
       withCredentials: true,
       transports: ['polling', 'websocket'],
     });
@@ -46,7 +46,7 @@ export default function Leaderboard() {
 
   const fetchRankings = async () => {
     try {
-      const response = await fetch('https://highstock-ps-1.onrender.com/leaderboard');
+      const response = await fetch('http://192.168.29.1:5000/leaderboard');
       if (!response.ok) {
         throw new Error('Failed to fetch rankings');
       }
