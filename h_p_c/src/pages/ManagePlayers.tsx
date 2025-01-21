@@ -31,7 +31,7 @@ interface UserPizzaHistory {
   eaten_at: string | null;
 }
 
-const API_URL = "http://192.168.29.1:5000";
+const API_URL = "https://82e6-2405-201-5c2a-701b-49c-b0bc-6e68-29e.ngrok-free.app";
 
 const ManagePlayers: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
