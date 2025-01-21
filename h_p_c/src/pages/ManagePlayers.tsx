@@ -32,7 +32,7 @@ interface UserPizzaHistory {
   eaten_at: string | null;
 }
 
-const API_URL = "http://localhost:5000";
+const API_URL = "https://highstock-ps-1.onrender.com";
 
 const ManagePlayers: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -57,7 +57,7 @@ const ManagePlayers: React.FC = () => {
     fetchUsers();
     fetchPizzaSlices();
 
-    const socket = io("http://localhost:5000", {
+    const socket = io("https://highstock-ps-1.onrender.com", {
       withCredentials: true,
       transports: ['websocket'],
     });
