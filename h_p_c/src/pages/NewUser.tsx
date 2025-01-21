@@ -38,7 +38,7 @@ const FormComponent = () => {
     setError('');
 
     try {
-      const response = await fetch('http://192.168.29.1:5000/users', {
+      const response = await fetch('https://82e6-2405-201-5c2a-701b-49c-b0bc-6e68-29e.ngrok-free.app/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
