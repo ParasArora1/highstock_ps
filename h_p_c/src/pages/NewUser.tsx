@@ -9,6 +9,7 @@ interface FormData {
 }
 
 const FormComponent = () => {
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<FormData>({ name: '', age: 0, gender: '' });
   const [error, setError] = useState<string>('');
   const [showPopup, setShowPopup] = useState(false);
@@ -17,6 +18,7 @@ const FormComponent = () => {
 
   useEffect(() => {
     setMounted(true);
+    setLoading(false);
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -38,7 +40,7 @@ const FormComponent = () => {
     setError('');
 
     try {
-      const response = await fetch('https://82e6-2405-201-5c2a-701b-49c-b0bc-6e68-29e.ngrok-free.app/users', {
+      const response = await fetch('http://localhost:5000/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,6 +63,14 @@ const FormComponent = () => {
       alert('Something went wrong! Please try again.');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px] bg-black text-purple-400">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-400"></div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen bg-black text-white p-4 sm:p-8 transition-all duration-1000 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
