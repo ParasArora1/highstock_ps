@@ -40,7 +40,7 @@ const FormComponent = () => {
     setError('');
 
     try {
-      const response = await fetch('https://wild-boxes-trade.loca.lt/users', {
+      const response = await fetch(' https://purple-goats-go.loca.lt/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
