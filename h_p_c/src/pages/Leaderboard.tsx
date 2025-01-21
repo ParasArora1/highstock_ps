@@ -18,7 +18,7 @@ export default function Leaderboard() {
     setMounted(true);
     fetchRankings();
 
-    const socket = io("https://e37b-2405-201-5c2a-701b-49c-b0bc-6e68-29e.ngrok-free.app/api", {
+    const socket = io("https://82e6-2405-201-5c2a-701b-49c-b0bc-6e68-29e.ngrok-free.app", {
       withCredentials: true,
       transports: ['polling', 'websocket'],
     });
