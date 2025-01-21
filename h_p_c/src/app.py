@@ -6,19 +6,11 @@ from datetime import datetime, timezone
 import os
 from supabase import create_client, Client
 from http import HTTPStatus
-import threading
 
 app = Flask(__name__)
-CORS(app, resources={
-    r"/*": {
-        "origins": "https://pizzaparadisehs.netlify.app",  
-        "allow_headers": ["Content-Type"],
-        "methods": ["GET", "POST", "OPTIONS,DELETE"],
-        "supports_credentials": True
-    }
-})
+CORS(app)
 
-socketio = SocketIO(app, cors_allowed_origins="https://pizzaparadisehs.netlify.app")
+socketio = SocketIO(app, cors_allowed_origins="*", logger=True)
 
 url = "https://zllmedoapyxuerctyfwl.supabase.co"
 key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsbG1lZG9hcHl4dWVyY3R5ZndsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzA0ODQ0NSwiZXhwIjoyMDUyNjI0NDQ1fQ.E79VF3e8iPApqObEKuJrZQWozc8ZCSDEKzeSbQRj3dg"
@@ -75,6 +67,11 @@ def delete_user(user_id: int):
         response = supabase.table('users').delete().eq('id', user_id).execute()
         if not response.data:
             raise APIError("User not found", HTTPStatus.NOT_FOUND)
+        
+        # print(supabase.table('users').select("*").execute())
+        handle_some_event('update_page')
+        handle_some_event('update_leaderboard')
+
         return '', HTTPStatus.NO_CONTENT
     except Exception as e:
         raise APIError(f"Failed to delete user: {str(e)}", HTTPStatus.INTERNAL_SERVER_ERROR)
@@ -92,7 +89,7 @@ def create_user():
         )
         response = supabase.table('users').insert(vars(user)).execute()
         # print("step1")
-        handle_some_event("send to client")
+        handle_some_event('update_page')
         # print("step2")
         return jsonify(response.data[0]), HTTPStatus.CREATED
     except KeyError as e:
@@ -106,7 +103,7 @@ def get_leaderboard():
     """Retrieve the leaderboard based on pizza consumption."""
     try:
         response = supabase.table('users').select('name, number_of_pizza_eaten').gt('number_of_pizza_eaten', 0).order('number_of_pizza_eaten', desc=True).order('name').execute()
-        # print(response)
+        
         leaderboard = []
         rank = 1
         for user in response.data:
@@ -206,7 +203,7 @@ def log_pizza():
            current_pizza_count = user_data.data[0]['number_of_pizza_eaten']
         new_pizza_count = current_pizza_count + 1
         supabase.table('users').update({'number_of_pizza_eaten': new_pizza_count}).eq('id', user_id).execute()
-        handle_some_event("send to client")
+        handle_some_event('update_leaderboard')
        
         return jsonify({'message': 'Pizza slice logged as eaten!'}), HTTPStatus.OK
     except Exception as e:
@@ -217,7 +214,7 @@ def log_pizza():
 @socketio.on('response')
 def handle_some_event(data):
     try:
-        emit('response', {'message': 'update_leaderboard'}, namespace='/',broadcast=True)
+        emit('response', {'message': data}, namespace='/',broadcast=True)
         # print("Emitted 'response' event with message to all clients")
     except Exception as e:
         print(f"Error during event emission: {e}")
@@ -254,5 +251,5 @@ def notify_clients():
             connected_clients.remove(client)
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port, debug=True)
+    app.config['DEBUG'] = False
+    socketio.run(app, port=5000)
