@@ -18,7 +18,7 @@ export default function Leaderboard() {
     setMounted(true);
     fetchRankings();
 
-    const socket = io("http://192.168.29.1:5000", {
+    const socket = io("https://e37b-2405-201-5c2a-701b-49c-b0bc-6e68-29e.ngrok-free.app", {
       withCredentials: true,
       transports: ['polling', 'websocket'],
     });
@@ -46,7 +46,7 @@ export default function Leaderboard() {
 
   const fetchRankings = async () => {
     try {
-      const response = await fetch('http://192.168.29.1:5000/leaderboard');
+      const response = await fetch('https://e37b-2405-201-5c2a-701b-49c-b0bc-6e68-29e.ngrok-free.app/leaderboard');
       if (!response.ok) {
         throw new Error('Failed to fetch rankings');
       }
