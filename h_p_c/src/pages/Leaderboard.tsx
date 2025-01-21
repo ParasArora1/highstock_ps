@@ -46,7 +46,7 @@ export default function Leaderboard() {
 
   const fetchRankings = async () => {
     try {
-      const response = await fetch('https://e37b-2405-201-5c2a-701b-49c-b0bc-6e68-29e.ngrok-free.app/api/leaderboard');
+      const response = await fetch('https://82e6-2405-201-5c2a-701b-49c-b0bc-6e68-29e.ngrok-free.app/leaderboard');
       if (!response.ok) {
         throw new Error('Failed to fetch rankings');
       }
