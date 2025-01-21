@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Minus, Plus } from "lucide-react";
+import { io } from "socket.io-client";
 
 // Define interfaces for the data types
 interface User {
@@ -31,39 +32,76 @@ interface UserPizzaHistory {
   eaten_at: string | null;
 }
 
-const API_URL = "https://82e6-2405-201-5c2a-701b-49c-b0bc-6e68-29e.ngrok-free.app";
+const API_URL = "http://localhost:5000";
 
 const ManagePlayers: React.FC = () => {
+  const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [pizzaSlices, setPizzaSlices] = useState<PizzaSlice[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [history, setHistory] = useState<UserPizzaHistory[]>([]);
-  const [loading, setLoading] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
+  const [mounted, setMounted] = useState(false);
 
-  // Fetch users and pizza slices when the component mounts
+
   useEffect(() => {
+    setMounted(true);
+    // setLoading(true);
     fetchUsers();
     fetchPizzaSlices();
 
-    const pollInterval = setInterval(() => {
-      fetchUsers();
-    }, 5000);
+    const socket = io("http://localhost:5000", {
+      withCredentials: true,
+      transports: ['websocket'],
+    });
 
-    return () => clearInterval(pollInterval);
+    console.log("Connected with server");
+
+    socket.on('response', (data) => {
+      console.log("Data received:", data);
+      if (data.message === 'update_page') {
+        console.log("Received update notification.");
+        fetchUsers();
+        fetchPizzaSlices();
+      }
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('WebSocket connection error:', error);
+      setError('WebSocket connection error. Please try again later.');
+    });
+
+    return () => {
+      socket.disconnect();
+      console.log("Socket disconnected.");
+    };
   }, []);
+  // Fetch users and pizza slices when the component mounts
+  // useEffect(() => {
+  //   fetchUsers();
+  //   fetchPizzaSlices();
+
+  //   const pollInterval = setInterval(() => {
+  //     fetchUsers();
+  //   }, 5000);
+
+  //   return () => clearInterval(pollInterval);
+  // }, []);
 
   const fetchUsers = async () => {
     try {
       const response = await fetch(`${API_URL}/users`);
       const data = await response.json();
+      // console.log(data);
       setUsers(data);
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching users:", error);
     }
@@ -81,14 +119,14 @@ const ManagePlayers: React.FC = () => {
 
   const fetchUserHistory = async (userId: number) => {
     try {
-      setLoading(true);
+      // setLoading(true);
       const response = await fetch(`${API_URL}/user_history/${userId}`);
       const data = await response.json();
       setHistory(data);
       setShowHistoryModal(true);
-      setLoading(false);
+      // setLoading(false);
     } catch (error) {
-      setLoading(false);
+      // setLoading(false);
       setShowPopup(true);
       setPopupMessage("Failed to fetch history.");
       console.error("Error fetching user history:", error);
@@ -113,7 +151,7 @@ const ManagePlayers: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      setLoading(true);
+      // setLoading(true);
       const response = await fetch(`${API_URL}/log_pizza`, {
         method: "POST",
         headers: {
@@ -134,7 +172,7 @@ const ManagePlayers: React.FC = () => {
       setPopupMessage("Failed to log pizza slice.");
       setShowPopup(true);
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 
@@ -202,8 +240,17 @@ const ManagePlayers: React.FC = () => {
     (sum, item) => sum + item.slice.price * item.quantity,
     0
   );
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px] bg-black text-purple-400">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-400"></div>
+      </div>
+    );
+  }
 
   return (
+    
     <div className="min-h-screen bg-black text-white overflow-hidden relative">
       <div className="container mx-auto p-8 relative">
         <motion.h1
@@ -216,7 +263,7 @@ const ManagePlayers: React.FC = () => {
 
         <div className="grid gap-6">
   <AnimatePresence>
-    {users.map.size === 0 ? (
+    {users.length === 0 ? (
       <div className="p-8 text-center text-purple-400 text-base sm:text-xl animate-pulse">
         No users in Paradise. Add some new users to the Paradise :)
       </div>
@@ -485,6 +532,7 @@ const ManagePlayers: React.FC = () => {
                             method: "DELETE",
                           });
                           if (!response.ok) throw new Error("Failed to delete user");
+                          // map.delete()
                           await fetchUsers();
                           setShowDeleteConfirmation(false);
                           setPopupMessage("User deleted successfully.");
@@ -550,3 +598,4 @@ const ManagePlayers: React.FC = () => {
 };
 
 export default ManagePlayers;
+
