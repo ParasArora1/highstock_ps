@@ -40,7 +40,7 @@ const FormComponent = () => {
     setError('');
 
     try {
-      const response = await fetch('https://highstock-ps-1.onrender.com/users', {
+      const response = await fetch('https://backend-hst.onrender.com/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
