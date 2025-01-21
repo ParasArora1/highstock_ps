@@ -57,7 +57,7 @@ const ManagePlayers: React.FC = () => {
     fetchUsers();
     fetchPizzaSlices();
 
-    const socket = io("https://highstock-ps-1.onrender.com", {
+    const socket = io("https://backend-hst.onrender.com", {
       withCredentials: true,
       transports: ['websocket'],
     });
