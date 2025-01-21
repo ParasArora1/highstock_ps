@@ -31,7 +31,7 @@ interface UserPizzaHistory {
   eaten_at: string | null;
 }
 
-const API_URL = "https://highstock-ps-1.onrender.com";
+const API_URL = "http://192.168.29.1:5000";
 
 const ManagePlayers: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
