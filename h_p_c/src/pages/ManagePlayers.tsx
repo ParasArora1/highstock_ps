@@ -32,7 +32,7 @@ interface UserPizzaHistory {
   eaten_at: string | null;
 }
 
-const API_URL = "https://highstock-ps-1.onrender.com";
+const API_URL = "https://backend-hst.onrender.com";
 
 const ManagePlayers: React.FC = () => {
   const [loading, setLoading] = useState(true);
