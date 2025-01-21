@@ -51,6 +51,7 @@ export default function Leaderboard() {
         throw new Error('Failed to fetch rankings');
       }
       const data = await response.json();
+      console.log(data);
       setRankings(data);
       setError(null);
     } catch (error) {
