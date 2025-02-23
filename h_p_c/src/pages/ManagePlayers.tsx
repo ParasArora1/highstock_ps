@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Minus, Plus } from "lucide-react";
-import { io } from "socket.io-client";
+import { createClient } from "@supabase/supabase-js";
 
 // Define interfaces for the data types
 interface User {
@@ -26,13 +26,18 @@ interface CartItem {
 
 interface UserPizzaHistory {
   id: number;
+  user_id: number;
   slice_id: number;
   slice_name: string;
   purchased_at: string;
   eaten_at: string | null;
 }
 
-const API_URL = "https://backend-hst.onrender.com";
+// Create a Supabase client using your credentials
+const SUPABASE_URL = 'https://zllmedoapyxuerctyfwl.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsbG1lZG9hcHl4dWVyY3R5ZndsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzA0ODQ0NSwiZXhwIjoyMDUyNjI0NDQ1fQ.E79VF3e8iPApqObEKuJrZQWozc8ZCSDEKzeSbQRj3dg';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const ManagePlayers: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -50,86 +55,65 @@ const ManagePlayers: React.FC = () => {
   const [popupMessage, setPopupMessage] = useState("");
   const [mounted, setMounted] = useState(false);
 
-
   useEffect(() => {
     setMounted(true);
-    // setLoading(true);
     fetchUsers();
     fetchPizzaSlices();
 
-    const socket = io("https://backend-hst.onrender.com", {
-      withCredentials: true,
-      transports: ['websocket'],
-    });
-
-    console.log("Connected with server");
-
-    socket.on('response', (data) => {
-      console.log("Data received:", data);
-      if (data.message === 'update_page') {
-        console.log("Received update notification.");
+    // Set up real-time subscriptions for users and pizza slices
+    const usersSubscription = supabase
+      .from("users")
+      .on("*", () => {
         fetchUsers();
-        fetchPizzaSlices();
-      }
-    });
+      })
+      .subscribe();
 
-    socket.on('connect_error', (error) => {
-      console.error('WebSocket connection error:', error);
-      setError('WebSocket connection error. Please try again later.');
-    });
+    const pizzaSubscription = supabase
+      .from("pizza_slices")
+      .on("*", () => {
+        fetchPizzaSlices();
+      })
+      .subscribe();
 
     return () => {
-      socket.disconnect();
-      console.log("Socket disconnected.");
+      supabase.removeSubscription(usersSubscription);
+      supabase.removeSubscription(pizzaSubscription);
     };
   }, []);
-  // Fetch users and pizza slices when the component mounts
-  // useEffect(() => {
-  //   fetchUsers();
-  //   fetchPizzaSlices();
-
-  //   const pollInterval = setInterval(() => {
-  //     fetchUsers();
-  //   }, 5000);
-
-  //   return () => clearInterval(pollInterval);
-  // }, []);
 
   const fetchUsers = async () => {
-    try {
-      const response = await fetch(`${API_URL}/users`);
-      const data = await response.json();
-      // console.log(data);
-      setUsers(data);
-      setLoading(false);
-    } catch (error) {
+    const { data, error } = await supabase.from("users").select("*");
+    if (error) {
       console.error("Error fetching users:", error);
+      setError("Error fetching users.");
+    } else {
+      setUsers(data || []);
     }
+    setLoading(false);
   };
 
   const fetchPizzaSlices = async () => {
-    try {
-      const response = await fetch(`${API_URL}/pizza_slices`);
-      const data = await response.json();
-      setPizzaSlices(data);
-    } catch (error) {
+    const { data, error } = await supabase.from("pizza_slices").select("*");
+    if (error) {
       console.error("Error fetching pizza slices:", error);
+    } else {
+      setPizzaSlices(data || []);
     }
   };
 
   const fetchUserHistory = async (userId: number) => {
-    try {
-      // setLoading(true);
-      const response = await fetch(`${API_URL}/user_history/${userId}`);
-      const data = await response.json();
-      setHistory(data);
-      setShowHistoryModal(true);
-      // setLoading(false);
-    } catch (error) {
-      // setLoading(false);
-      setShowPopup(true);
-      setPopupMessage("Failed to fetch history.");
+    const { data, error } = await supabase
+      .from("user_history")
+      .select("*")
+      .eq("user_id", userId)
+      .order("purchased_at", { ascending: false });
+    if (error) {
       console.error("Error fetching user history:", error);
+      setPopupMessage("Failed to fetch history.");
+      setShowPopup(true);
+    } else {
+      setHistory(data || []);
+      setShowHistoryModal(true);
     }
   };
 
@@ -147,32 +131,21 @@ const ManagePlayers: React.FC = () => {
     });
   };
 
-  const logPizzaAsEaten = async (id_of_slice: number) => {
+  const logPizzaAsEaten = async (historyId: number) => {
     if (!selectedUser) return;
-
-    try {
-      // setLoading(true);
-      const response = await fetch(`${API_URL}/log_pizza`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: id_of_slice,
-          user_id: selectedUser.id,
-        }),
-      });
-      if (!response.ok) throw new Error("Failed to log pizza slice.");
-
+    const { error } = await supabase
+      .from("user_history")
+      .update({ eaten_at: new Date().toISOString() })
+      .eq("id", historyId)
+      .eq("user_id", selectedUser.id);
+    if (error) {
+      console.error("Error logging pizza slice as eaten:", error);
+      setPopupMessage("Failed to log pizza slice.");
+      setShowPopup(true);
+    } else {
       await fetchUserHistory(selectedUser.id);
       setPopupMessage("Pizza slice logged as eaten!");
       setShowPopup(true);
-    } catch (error) {
-      console.error("Error logging pizza slice:", error);
-      setPopupMessage("Failed to log pizza slice.");
-      setShowPopup(true);
-    } finally {
-      // setLoading(false);
     }
   };
 
@@ -207,40 +180,67 @@ const ManagePlayers: React.FC = () => {
       return;
     }
 
-    try {
-      const response = await fetch(`${API_URL}/buy_pizza`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_id: selectedUser.id,
-          items: cart.map((item) => ({
-            slice_id: item.slice.id,
-            quantity: item.quantity,
-          })),
-        }),
-      });
-
-      if (!response.ok) throw new Error("Failed to purchase pizzas.");
-
-      await fetchUsers();
-      setShowPurchaseModal(false);
-      setCart([]);
-      setPopupMessage("Purchase completed successfully.");
-      setShowPopup(true);
-    } catch (error) {
-      console.error("Error purchasing pizzas:", error);
+    // Update the user's coins
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({ coins: selectedUser.coins - totalCost })
+      .eq("id", selectedUser.id);
+    if (updateError) {
+      console.error("Error updating user coins:", updateError);
       setPopupMessage("Failed to complete the purchase.");
       setShowPopup(true);
+      return;
     }
+
+    // Insert purchase records into the user_history table
+    const purchaseRecords = cart.flatMap((item) =>
+      Array(item.quantity).fill({
+        user_id: selectedUser.id,
+        slice_id: item.slice.id,
+        slice_name: item.slice.name,
+        purchased_at: new Date().toISOString(),
+        eaten_at: null,
+      })
+    );
+    const { error: insertError } = await supabase
+      .from("user_history")
+      .insert(purchaseRecords);
+    if (insertError) {
+      console.error("Error inserting purchase records:", insertError);
+      setPopupMessage("Failed to complete the purchase.");
+      setShowPopup(true);
+      return;
+    }
+
+    await fetchUsers();
+    setShowPurchaseModal(false);
+    setCart([]);
+    setPopupMessage("Purchase completed successfully.");
+    setShowPopup(true);
   };
 
   const totalCost = cart.reduce(
     (sum, item) => sum + item.slice.price * item.quantity,
     0
   );
-  
+
+  const deleteUser = async () => {
+    if (!userToDelete) return;
+    const { error } = await supabase
+      .from("users")
+      .delete()
+      .eq("id", userToDelete.id);
+    if (error) {
+      console.error("Error deleting user:", error);
+      setPopupMessage("Failed to delete user.");
+    } else {
+      await fetchUsers();
+      setPopupMessage("User deleted successfully.");
+    }
+    setShowDeleteConfirmation(false);
+    setShowPopup(true);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px] bg-black text-purple-400">
@@ -250,7 +250,6 @@ const ManagePlayers: React.FC = () => {
   }
 
   return (
-    
     <div className="min-h-screen bg-black text-white overflow-hidden relative">
       <div className="container mx-auto p-8 relative">
         <motion.h1
@@ -262,74 +261,73 @@ const ManagePlayers: React.FC = () => {
         </motion.h1>
 
         <div className="grid gap-6">
-  <AnimatePresence>
-    {users.length === 0 ? (
-      <div className="p-8 text-center text-purple-400 text-base sm:text-xl animate-pulse">
-        No users in Paradise. Add some new users to the Paradise :)
-      </div>
-    ) : (
-      users.map((user, index) => (
-        <motion.div
-          key={user.id}
-          initial={{ x: -100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 100, opacity: 0 }}
-          transition={{ delay: index * 0.1 }}
-          className="border border-purple-500 p-6 rounded-xl shadow-lg bg-gradient-to-r from-gray-900 to-black hover:shadow-purple-500/20 hover:shadow-2xl transition-all duration-300"
-        >
-          <div className="flex justify-between items-center flex-wrap gap-4">
-            <div className="min-w-[200px]">
-              <h2 className="text-2xl font-bold text-purple-400 break-words">
-                {user.name}
-              </h2>
-              <p className="text-gray-400">
-                Age: {user.age} | Gender: {user.gender}
-              </p>
-              <p className="text-yellow-500 font-semibold">
-                🪙 {user.coins} coins
-              </p>
-            </div>
+          <AnimatePresence>
+            {users.length === 0 ? (
+              <div className="p-8 text-center text-purple-400 text-base sm:text-xl animate-pulse">
+                No users in Paradise. Add some new users to the Paradise :)
+              </div>
+            ) : (
+              users.map((user, index) => (
+                <motion.div
+                  key={user.id}
+                  initial={{ x: -100, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: 100, opacity: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="border border-purple-500 p-6 rounded-xl shadow-lg bg-gradient-to-r from-gray-900 to-black hover:shadow-purple-500/20 hover:shadow-2xl transition-all duration-300"
+                >
+                  <div className="flex justify-between items-center flex-wrap gap-4">
+                    <div className="min-w-[200px]">
+                      <h2 className="text-2xl font-bold text-purple-400 break-words">
+                        {user.name}
+                      </h2>
+                      <p className="text-gray-400">
+                        Age: {user.age} | Gender: {user.gender}
+                      </p>
+                      <p className="text-yellow-500 font-semibold">
+                        🪙 {user.coins} coins
+                      </p>
+                    </div>
 
-            <div className="flex gap-3 flex-wrap">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  setSelectedUser(user);
-                  setShowPurchaseModal(true);
-                  setShowHistoryModal(false);
-                }}
-                className="bg-gradient-to-r from-purple-500 to-red-500 px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-purple-500/50 transition-all duration-300"
-              >
-                🍕 Buy Pizza
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  setSelectedUser(user);
-                  fetchUserHistory(user.id);
-                }}
-                className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-green-500/50 transition-all duration-300"
-              >
-                📋 History
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleDeleteUser(user)}
-                className="bg-gradient-to-r from-red-600 to-rose-700 px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-red-500/50 transition-all duration-300"
-              >
-                ❌ Delete
-              </motion.button>
-            </div>
-          </div>
-        </motion.div>
-      ))
-    )}
-  </AnimatePresence>
-</div>
-
+                    <div className="flex gap-3 flex-wrap">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setShowPurchaseModal(true);
+                          setShowHistoryModal(false);
+                        }}
+                        className="bg-gradient-to-r from-purple-500 to-red-500 px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-purple-500/50 transition-all duration-300"
+                      >
+                        🍕 Buy Pizza
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => {
+                          setSelectedUser(user);
+                          fetchUserHistory(user.id);
+                        }}
+                        className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-green-500/50 transition-all duration-300"
+                      >
+                        📋 History
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleDeleteUser(user)}
+                        className="bg-gradient-to-r from-red-600 to-rose-700 px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-red-500/50 transition-all duration-300"
+                      >
+                        ❌ Delete
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Purchase Modal */}
         <AnimatePresence>
@@ -349,7 +347,7 @@ const ManagePlayers: React.FC = () => {
                 <h2 className="text-2xl font-bold mb-4 text-purple-400 break-words">
                   🍕 Buy Pizza for {selectedUser.name}
                 </h2>
-                
+
                 <div className="text-sm text-gray-400 mb-4">
                   Available: 🪙 {selectedUser.coins} coins
                 </div>
@@ -361,8 +359,12 @@ const ManagePlayers: React.FC = () => {
                       className="flex justify-between items-center border border-purple-500/20 rounded-lg p-3 bg-gray-900/50"
                     >
                       <div className="flex-1 min-w-0 mr-2">
-                        <p className="font-semibold text-sm break-words">{slice.name}</p>
-                        <p className="text-yellow-500 text-sm">🪙 {slice.price}</p>
+                        <p className="font-semibold text-sm break-words">
+                          {slice.name}
+                        </p>
+                        <p className="text-yellow-500 text-sm">
+                          🪙 {slice.price}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <motion.button
@@ -370,19 +372,25 @@ const ManagePlayers: React.FC = () => {
                           whileTap={{ scale: 0.9 }}
                           className="bg-gradient-to-r from-red-500 to-red-600 w-7 h-7 rounded-full flex items-center justify-center shadow-lg hover:shadow-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
                           onClick={() => handleRemoveFromCart(slice.id)}
-                          disabled={!cart.find((item) => item.slice.id === slice.id)?.quantity}
+                          disabled={
+                            !cart.find((item) => item.slice.id === slice.id)
+                              ?.quantity
+                          }
                         >
                           <Minus size={14} strokeWidth={3} />
                         </motion.button>
                         <span className="w-6 text-center text-sm font-medium">
-                          {cart.find((item) => item.slice.id === slice.id)?.quantity || 0}
+                          {cart.find((item) => item.slice.id === slice.id)
+                            ?.quantity || 0}
                         </span>
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           className="bg-gradient-to-r from-green-500 to-green-600 w-7 h-7 rounded-full flex items-center justify-center shadow-lg hover:shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
                           onClick={() => handleAddToCart(slice)}
-                          disabled={selectedUser.coins < slice.price + totalCost}
+                          disabled={
+                            selectedUser.coins < slice.price + totalCost
+                          }
                         >
                           <Plus size={14} strokeWidth={3} />
                         </motion.button>
@@ -412,7 +420,6 @@ const ManagePlayers: React.FC = () => {
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setShowPurchaseModal(false)}
                     className="w-full bg-gradient-to-r from-gray-700 to-gray-800 text-white py-2.5 rounded-lg font-bold text-sm"
-                    // className="w-full bg-gradient-to-r from-gray-700 to-gray-800 text-white py-2.5 rounded-lg font-bold text-sm"
                   >
                     Close
                   </motion.button>
@@ -440,7 +447,7 @@ const ManagePlayers: React.FC = () => {
                 <h2 className="text-2xl font-bold mb-4 text-purple-400 break-words">
                   📋 History for {selectedUser.name}
                 </h2>
-                
+
                 <div className="text-sm text-gray-400 mb-4">
                   Available: 🪙 {selectedUser.coins} coins
                 </div>
@@ -449,15 +456,18 @@ const ManagePlayers: React.FC = () => {
                   {history.length > 0 ? (
                     history.map((entry) => (
                       <motion.div
-                        key={entry.slice_id}
+                        key={entry.id}
                         initial={{ x: -20, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         className="flex justify-between items-center border border-purple-500/20 rounded-lg p-3 bg-gray-900/50"
                       >
                         <div className="flex-1 min-w-0 mr-2">
-                          <p className="font-semibold text-sm break-words">{entry.slice_name}</p>
+                          <p className="font-semibold text-sm break-words">
+                            {entry.slice_name}
+                          </p>
                           <p className="text-gray-400 text-xs break-words">
-                            🕒 {new Date(entry.purchased_at).toLocaleString()}
+                            🕒{" "}
+                            {new Date(entry.purchased_at).toLocaleString()}
                           </p>
                         </div>
                         {!entry.eaten_at ? (
@@ -466,7 +476,6 @@ const ManagePlayers: React.FC = () => {
                             whileTap={{ scale: 0.9 }}
                             className="bg-gradient-to-r from-green-500 to-green-600 px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg hover:shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                             onClick={() => logPizzaAsEaten(entry.id)}
-                            disabled={loading}
                           >
                             Mark Eaten
                           </motion.button>
@@ -525,26 +534,7 @@ const ManagePlayers: React.FC = () => {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={async () => {
-                      if (userToDelete) {
-                        try {
-                          const response = await fetch(`${API_URL}/users/${userToDelete.id}`, {
-                            method: "DELETE",
-                          });
-                          if (!response.ok) throw new Error("Failed to delete user");
-                          // map.delete()
-                          await fetchUsers();
-                          setShowDeleteConfirmation(false);
-                          setPopupMessage("User deleted successfully.");
-                          setShowPopup(true);
-                        } catch (error) {
-                          console.error("Error deleting user:", error);
-                          setShowDeleteConfirmation(false);
-                          setPopupMessage("Failed to delete user.");
-                          setShowPopup(true);
-                        }
-                      }
-                    }}
+                    onClick={deleteUser}
                     className="flex-1 bg-gradient-to-r from-red-500 to-red-600 py-3 rounded-lg font-semibold text-white shadow-lg hover:shadow-red-500/50 transition-all duration-300"
                   >
                     Confirm
@@ -579,7 +569,9 @@ const ManagePlayers: React.FC = () => {
                 exit={{ scale: 0.9, opacity: 0 }}
                 className="bg-white p-6 rounded-xl shadow-lg max-w-sm mx-auto text-center"
               >
-                <p className="text-xl font-semibold text-black break-words">{popupMessage}</p>
+                <p className="text-xl font-semibold text-black break-words">
+                  {popupMessage}
+                </p>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -598,4 +590,3 @@ const ManagePlayers: React.FC = () => {
 };
 
 export default ManagePlayers;
-
