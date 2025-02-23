@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { UserPlus } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
-// Initialize Supabase client
+
 const supabaseUrl = 'https://zllmedoapyxuerctyfwl.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsbG1lZG9hcHl4dWVyY3R5ZndsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzA0ODQ0NSwiZXhwIjoyMDUyNjI0NDQ1fQ.E79VF3e8iPApqObEKuJrZQWozc8ZCSDEKzeSbQRj3dg';
 const supabase = createClient(supabaseUrl, supabaseKey);
