@@ -533,7 +533,7 @@ const ManagePlayers: React.FC = () => {
                       >
                         <div className="flex-1 min-w-0 mr-2">
                           <p className="font-semibold text-sm break-words">
-                            {entry.pizza_slices?.[0].name || "Unknown Slice"}
+                            {entry.pizza_slices?.[0]?.name || "Unknown Slice"}
                           </p>
                           <p className="text-gray-400 text-xs break-words">
                             🕒{" "}
