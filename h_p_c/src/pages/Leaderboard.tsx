@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Trophy } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
+import { useState, useEffect } from "react";
+import { Trophy } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = 'https://zllmedoapyxuerctyfwl.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsbG1lZG9hcHl4dWVyY3R5ZndsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzA0ODQ0NSwiZXhwIjoyMDUyNjI0NDQ1fQ.E79VF3e8iPApqObEKuJrZQWozc8ZCSDEKzeSbQRj3dg';
+const supabaseUrl = "https://zllmedoapyxuerctyfwl.supabase.co";
+const supabaseKey =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsbG1lZG9hcHl4dWVyY3R5ZndsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzA0ODQ0NSwiZXhwIjoyMDUyNjI0NDQ1fQ.E79VF3e8iPApqObEKuJrZQWozc8ZCSDEKzeSbQRj3dg";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface UserRank {
@@ -18,26 +19,26 @@ export default function Leaderboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchRankings(); // Fetch initial leaderboard data
-
-    // Set up real-time subscription to listen for changes
+    fetchRankings(); 
     const channel = supabase
-      .channel('user-updates') // Channel name can be anything
+      .channel("user-updates") 
       .on(
-        'postgres_changes', // Real-time event type
+        "postgres_changes",
         {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'user', // Table name
+          event: "*", 
+          schema: "public",
+          table: "users", 
         },
-        () => {
-          console.log('Real-time update received');
-          fetchRankings(); // Re-fetch leaderboard data on update
+        (payload) => {
+          console.log("Real-time update received:", payload);
+
+          
+          fetchRankings();
         }
       )
       .subscribe();
 
-    // Cleanup subscription on component unmount
+    
     return () => {
       supabase.removeChannel(channel);
     };
@@ -46,10 +47,10 @@ export default function Leaderboard() {
   const fetchRankings = async () => {
     try {
       const { data, error } = await supabase
-        .from('user') // Query the user table
-        .select('name, number_of_pizza_eaten')
-        .gt('number_of_pizza_eaten', 0) // Filter users with pizzas eaten > 0
-        .order('number_of_pizza_eaten', { ascending: false }); // Sort in descending order
+        .from("users") 
+        .select("name, number_of_pizza_eaten")
+        .gt("number_of_pizza_eaten", 0) 
+        .order("number_of_pizza_eaten", { ascending: false }); 
 
       if (error) {
         throw error;
@@ -64,8 +65,8 @@ export default function Leaderboard() {
       setRankings(rankedData);
       setError(null);
     } catch (error) {
-      console.error('Error fetching rankings:', error);
-      setError('Failed to load rankings. Please try again later.');
+      console.error("Error fetching rankings:", error);
+      setError("Failed to load rankings. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -82,7 +83,9 @@ export default function Leaderboard() {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[400px] bg-black">
-        <div className="text-red-400 text-base sm:text-xl px-4 text-center animate-pulse">{error}</div>
+        <div className="text-red-400 text-base sm:text-xl px-4 text-center animate-pulse">
+          {error}
+        </div>
       </div>
     );
   }
@@ -92,7 +95,9 @@ export default function Leaderboard() {
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-center mb-8 sm:mb-12">
           <Trophy className="w-8 h-8 sm:w-12 sm:h-12 text-purple-400 mr-3" />
-          <h1 className="text-3xl sm:text-5xl font-bold text-purple-400">Leaderboard</h1>
+          <h1 className="text-3xl sm:text-5xl font-bold text-purple-400">
+            Leaderboard
+          </h1>
         </div>
 
         <div className="bg-[#121212] rounded-xl sm:rounded-2xl overflow-hidden border border-purple-500/20">
@@ -114,9 +119,9 @@ export default function Leaderboard() {
                   className="grid grid-cols-12 gap-2 p-4 sm:p-6 items-center hover:bg-purple-500/5"
                 >
                   <div className="col-span-2 sm:col-span-3 font-mono text-xl">
-                    {rank.rank === 1 && '🥇'}
-                    {rank.rank === 2 && '🥈'}
-                    {rank.rank === 3 && '🥉'}
+                    {rank.rank === 1 && "🥇"}
+                    {rank.rank === 2 && "🥈"}
+                    {rank.rank === 3 && "🥉"}
                     {rank.rank > 3 && `#${rank.rank}`}
                   </div>
                   <div className="col-span-6 sm:col-span-6">
