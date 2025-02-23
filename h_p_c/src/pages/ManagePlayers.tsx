@@ -3,14 +3,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Minus, Plus } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 
-// =============== INTERFACES ===============
+
 interface User {
+  number_of_pizza_eaten: number;
   id: number;
   name: string;
-  age: string;       // In your schema, age is text
+  age: string; 
   gender: string;
   coins: number;
-  // number_of_pizza_eaten?: string; // if you want to display this
 }
 
 interface PizzaSlice {
@@ -25,60 +25,55 @@ interface CartItem {
   quantity: number;
 }
 
-// "user_slices" row + the joined "pizza_slices" data
+
 interface UserSliceRecord {
   id: number;
   user_id: number;
   slice_id: number;
   purchased_at: string;
   eaten_at: string | null;
-  // Expect an array here
   pizza_slices: {
     id: number;
     name: string;
     price: number;
     description: string;
-  }[]; 
+  }[];
 }
 
-
-
-
 const supabaseUrl = 'https://zllmedoapyxuerctyfwl.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsbG1lZG9hcHl4dWVyY3R5ZndsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzA0ODQ0NSwiZXhwIjoyMDUyNjI0NDQ1fQ.E79VF3e8iPApqObEKuJrZQWozc8ZCSDEKzeSbQRj3dg';
+const supabaseKey =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsbG1lZG9hcHl4dWVyY3R5ZndsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzA0ODQ0NSwiZXhwIjoyMDUyNjI0NDQ1fQ.E79VF3e8iPApqObEKuJrZQWozc8ZCSDEKzeSbQRj3dg';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const ManagePlayers: React.FC = () => {
-  // =============== STATE ===============
+
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [pizzaSlices, setPizzaSlices] = useState<PizzaSlice[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  // Purchase cart
+  
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  // Modals
+
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
-  // History for a selected user
-  const [userSlices, setUserSlices] = useState<UserSliceRecord[]>([]);
 
-  // Deletion
+  const [userSlices, setUserSlices] = useState<UserSliceRecord[]>([]);
+  
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
-  // Popup messages
+
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
 
-  // =============== EFFECT: FETCH + SUBSCRIPTIONS ===============
   useEffect(() => {
     fetchUsers();
     fetchPizzaSlices();
 
-    // Subscribe to changes in the "users" table
+
     const usersChannel = supabase
       .channel("users-channel")
       .on(
@@ -91,7 +86,7 @@ const ManagePlayers: React.FC = () => {
       )
       .subscribe();
 
-    // Subscribe to changes in the "pizza_slices" table
+
     const pizzaChannel = supabase
       .channel("pizza_slices-channel")
       .on(
@@ -110,7 +105,49 @@ const ManagePlayers: React.FC = () => {
     };
   }, []);
 
-  // =============== FETCHERS ===============
+  useEffect(() => {
+    if (selectedUser) {
+      const userSlicesChannel = supabase
+        .channel("user_slices-channel")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "user_slices",
+            filter: `user_id=eq.${selectedUser.id}`,
+          },
+          (payload) => {
+            console.log("User slices realtime payload:", payload);
+            if (payload.eventType === "INSERT") {
+              setUserSlices((prev) =>
+                [payload.new as UserSliceRecord, ...prev] 
+              );
+            } else if (payload.eventType === "UPDATE") {
+              setUserSlices((prev) =>
+                prev.map((entry) =>
+                  entry.id === payload.new.id
+                    ? (payload.new as UserSliceRecord)
+                    : entry
+                )
+              );
+            } else if (payload.eventType === "DELETE") {
+              setUserSlices((prev) =>
+                prev.filter((entry) => entry.id !== payload.old.id)
+              );
+            }
+          }
+        )
+        .subscribe();
+  
+      return () => {
+        supabase.removeChannel(userSlicesChannel);
+      };
+    }
+  }, [selectedUser]);
+  
+
+  
   const fetchUsers = async () => {
     setLoading(true);
     const { data, error } = await supabase.from("users").select("*");
@@ -132,9 +169,6 @@ const ManagePlayers: React.FC = () => {
   };
 
   const fetchUserSlices = async (userId: number) => {
-    // We join user_slices → pizza_slices so we can display the slice name, etc.
-    // The syntax "pizza_slices(*)" fetches all columns from the pizza_slices table
-    // and returns it under the "pizza_slices" property of each user_slices row.
     const { data, error } = await supabase
       .from("user_slices")
       .select(`
@@ -163,7 +197,7 @@ const ManagePlayers: React.FC = () => {
     }
   };
 
-  // =============== CART ACTIONS ===============
+
   const handleAddToCart = (slice: PizzaSlice) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.slice.id === slice.id);
@@ -190,7 +224,7 @@ const ManagePlayers: React.FC = () => {
     );
   };
 
-  // =============== PURCHASE + HISTORY ===============
+
   const handlePurchase = async () => {
     if (!selectedUser) return;
 
@@ -199,14 +233,13 @@ const ManagePlayers: React.FC = () => {
       0
     );
 
-    // Check if the user has enough coins
+  
     if (selectedUser.coins < totalCost) {
       setPopupMessage("Not enough coins to complete the purchase.");
       setShowPopup(true);
       return;
     }
 
-    // 1. Update the user's coins
     const { error: updateError } = await supabase
       .from("users")
       .update({ coins: selectedUser.coins - totalCost })
@@ -219,7 +252,6 @@ const ManagePlayers: React.FC = () => {
       return;
     }
 
-    // 2. Insert rows into user_slices for each purchased slice
     const purchaseRecords = cart.flatMap((item) =>
       Array(item.quantity).fill({
         user_id: selectedUser.id,
@@ -240,10 +272,11 @@ const ManagePlayers: React.FC = () => {
       return;
     }
 
-    // Refresh user data so the coin count updates in the UI
-    await fetchUsers();
+    setSelectedUser((prev) =>
+      prev ? { ...prev, coins: prev.coins - totalCost } : prev
+    );
 
-    // Clear cart and close modal
+    
     setCart([]);
     setShowPurchaseModal(false);
 
@@ -254,9 +287,10 @@ const ManagePlayers: React.FC = () => {
   const logPizzaAsEaten = async (userSliceId: number) => {
     if (!selectedUser) return;
 
+    const newEatenAt = new Date().toISOString();
     const { error } = await supabase
       .from("user_slices")
-      .update({ eaten_at: new Date().toISOString() })
+      .update({ eaten_at: newEatenAt })
       .eq("id", userSliceId)
       .eq("user_id", selectedUser.id);
 
@@ -264,16 +298,36 @@ const ManagePlayers: React.FC = () => {
       console.error("Error logging pizza slice as eaten:", error);
       setPopupMessage("Failed to log pizza slice.");
       setShowPopup(true);
-    } else {
-      // Refresh the user's slice history
-      await fetchUserSlices(selectedUser.id);
-
-      setPopupMessage("Pizza slice logged as eaten!");
-      setShowPopup(true);
+      return;
     }
+
+    
+    const updatedCount = selectedUser.number_of_pizza_eaten + 1;
+    const { error: updateUserError } = await supabase
+      .from("users")
+      .update({ number_of_pizza_eaten: updatedCount })
+      .eq("id", selectedUser.id);
+
+    if (updateUserError) {
+      console.error("Error updating user's pizza eaten count:", updateUserError);
+      setPopupMessage("Failed to update pizza count.");
+      setShowPopup(true);
+      return;
+    }
+
+    setUserSlices((prevUserSlices) =>
+      prevUserSlices.map((entry) =>
+        entry.id === userSliceId ? { ...entry, eaten_at: newEatenAt } : entry
+      )
+    );
+    setSelectedUser((prevUser) =>
+      prevUser ? { ...prevUser, number_of_pizza_eaten: updatedCount } : prevUser
+    );
+
+    setPopupMessage("Pizza slice logged as eaten!");
+    setShowPopup(true);
   };
 
-  // =============== DELETING A USER ===============
   const handleDeleteUser = (user: User) => {
     setUserToDelete(user);
     setShowDeleteConfirmation(true);
@@ -281,10 +335,7 @@ const ManagePlayers: React.FC = () => {
 
   const deleteUser = async () => {
     if (!userToDelete) return;
-    // 1. Remove user_slices for this user (optional or use CASCADE in your DB)
-    // await supabase.from("user_slices").delete().eq("user_id", userToDelete.id);
 
-    // 2. Delete the user
     const { error } = await supabase
       .from("users")
       .delete()
@@ -294,7 +345,9 @@ const ManagePlayers: React.FC = () => {
       console.error("Error deleting user:", error);
       setPopupMessage("Failed to delete user.");
     } else {
-      await fetchUsers();
+      setUsers((prev) =>
+        prev.filter((user) => user.id !== userToDelete.id)
+      );
       setPopupMessage("User deleted successfully.");
     }
 
@@ -302,7 +355,7 @@ const ManagePlayers: React.FC = () => {
     setShowPopup(true);
   };
 
-  // =============== RENDERING ===============
+ 
   const totalCost = cart.reduce(
     (sum, item) => sum + item.slice.price * item.quantity,
     0
@@ -376,7 +429,7 @@ const ManagePlayers: React.FC = () => {
                         whileTap={{ scale: 0.95 }}
                         onClick={() => {
                           setSelectedUser(user);
-                          fetchUserSlices(user.id); // fetch the user_slices for this user
+                          fetchUserSlices(user.id);
                         }}
                         className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-green-500/50 transition-all duration-300"
                       >
@@ -533,7 +586,7 @@ const ManagePlayers: React.FC = () => {
                       >
                         <div className="flex-1 min-w-0 mr-2">
                           <p className="font-semibold text-sm break-words">
-                            {entry.pizza_slices?.[0]?.name || "Unknown Slice"}
+                            {entry.pizza_slices.name || "Unknown Slice"}
                           </p>
                           <p className="text-gray-400 text-xs break-words">
                             🕒{" "}
